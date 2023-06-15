@@ -10,11 +10,12 @@
 
 (menu-bar-mode -1)            ; Disable the menu bar
 
-(global-set-key (kbd "<escape>") 'keyboard-quit)
 
 (setq scroll-up-aggressively nil)
 (setq scroll-down-aggressively nil)
 (setq scroll-conservatively 101)
+
+(global-set-key (kbd "<escape>") 'keyboard-quit)
 
 (defvar myemacs-escape-hook nil 
   "for killing things")
@@ -87,9 +88,13 @@
   :config
   (ivy-mode 1))
 
+(use-package ivy-rich
+  :init
+  (ivy-rich-mode 1))
+
 (use-package doom-modeline
   :init (doom-modeline-mode 1)
-  :custom ((doom-modeline-height 25)))
+  :custom ((doom-modeline-height 35)))
 
 (use-package doom-themes
   :init (load-theme 'doom-one t))
@@ -103,13 +108,8 @@
   :config
   (setq which-key-idle-delay 1))
 
-(use-package ivy-rich
-  :init
-  (ivy-rich-mode 1))
-
 (use-package counsel
   :bind (("M-x" . counsel-M-x)
-         ("C-x b" . counsel-ibuffer)
          :map minibuffer-local-map
          ("C-r" . 'counsel-minibuffer-history)))
 
@@ -124,7 +124,6 @@
   ([remap describe-key] . helpful-key))
 
 
-(use-package all-the-icons)
 
 (use-package evil
   :init
@@ -132,6 +131,7 @@
   (setq evil-want-keybinding nil)
   (setq evil-want-C-u-scroll t)
   (setq evil-want-C-i-jump nil)
+  (setq evil-undo-system 'undo-redo)
   :config
   (evil-mode 1)
 
@@ -159,8 +159,6 @@
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
-  ;:bind-keymap
-  ;(myemacs/leader "p" . projectile-mode-map)
   )
 
 (use-package magit
@@ -173,6 +171,8 @@
 (add-hook 'org-mode-hook (lambda () (org-superstar-mode 1)))
 (setq org-hide-leading-stars t)
 
+
+;; leader key and key bindings
 (defvar myemacs-leader-map (make-sparse-keymap)
   "map for leader")
 (setq leader "SPC")
@@ -189,6 +189,7 @@
 
 (define-key myemacs-leader-map (kbd ".") '("find file" . counsel-find-file))
 (define-key myemacs-leader-map (kbd "<") '("switch buffer" . counsel-switch-buffer))
+(define-key myemacs-leader-map (kbd "s") '("swiper" . swiper))
 
 
 (which-key-add-keymap-based-replacements myemacs-leader-map "b" "buffer")
@@ -203,3 +204,11 @@
 (define-key myemacs-leader-map (kbd "h") '("help" . help-command))
 (define-key myemacs-leader-map (kbd "w") '("window" . evil-window-map))
 (define-key myemacs-leader-map (kbd "p") '("project" . projectile-command-map))
+(unbind-key (kbd "ESC") projectile-command-map)
+
+
+(require 'org-tempo)
+
+(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+(add-to-list 'org-structure-template-alist '("py" . "src python"))
