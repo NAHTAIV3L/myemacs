@@ -6,3 +6,11 @@
 .config/emacs/transient/
 .config/emacs/projectile-bookmarks.eld
 .config/emacs/projectile.cache
+/calculator/
+/test/
+/test.el
+/.config/emacs/elpa.bak/
+/.config/emacs/.lsp-session-v1
+/.config/emacs/history
+/.config/emacs/persp-confs/
+/.config/emacs/straight/
