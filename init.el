@@ -4,7 +4,7 @@
 (scroll-bar-mode -1)        ; Disable visible scrollbar
 (tool-bar-mode -1)          ; Disable the toolbar
 (tooltip-mode -1)           ; Disable tooltips
-(set-fringe-mode 10)        ; Give some breathing room
+(set-fringe-mode 20)        ; Give some breathing room
 
 (menu-bar-mode -1)            ; Disable the menu bar
 
@@ -18,6 +18,7 @@
 
 (dolist (mode '(org-mode-hook
 		term-mode-hook
+		vterm-mode-hook
 		shell-mode-hook
 		eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
@@ -28,6 +29,18 @@
 
 (setq scroll-step 1)
 (setq scroll-margin 8)
+
+(setq gc-cons-threshold (* 50 1000 1000))
+
+(defun display-startup-time ()
+  (interactive)
+  (message "Emacs loaded in %s with %d garbage collections."
+	   (format "%.2f seconds"
+		   (float-time
+		    (time-subtract after-init-time before-init-time)))
+	   gcs-done))
+
+(add-hook 'emacs-startup-hook #'display-startup-time)
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -60,6 +73,10 @@
 
 ;; (require 'use-package)
 ;; (setq use-package-always-ensure t)
+
+(use-package gcmh
+  :init
+  (gcmh-mode 1))
 
 ;; (use-package ivy
 ;;     :diminish
@@ -111,13 +128,16 @@
 (use-package savehist
   :init
   (savehist-mode 1))
+
 (use-package marginalia
   :after vertico
   :custom
   (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
   :init
   (marginalia-mode))
+
 (use-package consult)
+
 (use-package orderless
   :config
   (setq completion-styles '(orderless)
@@ -142,15 +162,19 @@
   :config
   (setq which-key-idle-delay 1))
 
-(use-package helpful)
+(use-package helpful
   ;; :custom
   ;; (counsel-describe-function-function #'helpful-callable)
   ;; (counsel-describe-variable-function #'helpful-variable)
-  ;; :bind
+  :bind
   ;; ([remap describe-function] . counsel-describe-function)
-  ;; ([remap describe-command] . helpful-command)
+  ([remap describe-command] . helpful-command)
+  ([remap describe-function] . helpful-callable)
+  ([remap describe-variable] . helpful-variable)
   ;; ([remap describe-variable] . counsel-describe-variable)
-  ;; ([remap describe-key] . helpful-key))
+  ([remap describe-key] . helpful-key))
+
+(use-package undo-tree)
 
 (use-package evil
   :init
@@ -171,6 +195,7 @@
   (evil-collection-init))
 
 (use-package evil-anzu
+  :after evil
   :config
   (global-anzu-mode 1))
 
@@ -192,22 +217,15 @@
  '((emacs-lisp . t)
    (python . t)))
 
-(defun efs/org-babel-tangle-config ()
-  (when (string-equal (buffer-file-name)
-		      (expand-file-name "~/Emacs.org"))
+(defun org-babel-tangle-config ()
+  (when (or
+	 (string-equal (buffer-file-name) (expand-file-name "~/.config/emacs/Emacs.org"))
+	 (string-equal (buffer-file-name) (expand-file-name "~/.config/emacs/Desktop.org")))
     ;; Dynamic scoping to the rescue
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
 
-(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
-
-(use-package general
-  ;:config
-  ;(general-create-definer myemacs/leader
-  ;  :keymaps '(normal insert visual emacs)
-  ;  :prefix "SPC"
-  ;  :global-prefix "M-SPC")
-  )
+(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'org-babel-tangle-config)))
 
 (use-package smartparens
   :config
@@ -227,12 +245,17 @@
   (setq persp-nil-name "main")
   :config
   (add-hook 'window-setup-hook #'(lambda () (persp-mode 1))))
-(load (expand-file-name "~/.config/emacs/workspace.el"))
+(add-to-list 'load-path "~/.config/emacs/lisp/")
+(require 'workspace)
+(require 'status)
+
+(use-package general)
+
+(use-package exwm)
 
 (use-package projectile
   :diminish projectile-mode
-  :config (projectile-mode)
-  )
+  :config (projectile-mode))
 
 (use-package magit
   :custom
@@ -252,6 +275,7 @@
   :commands lsp)
 
 (use-package lsp-ui
+  :after lsp
   :config
   (setq lsp-ui-sideline-update-mode 'point)
   (setq lsp-ui-sideline-show-diagnostics t)
@@ -263,7 +287,26 @@
 
 (use-package lsp-treemacs
   :after lsp)
-(use-package lsp-ivy)
+
+(use-package consult-lsp
+  :after lsp)
+
+(defun lsp-bind ()
+  (interactive)
+  (define-key myemacs-leader-map (kbd "l") lsp-command-map)
+  (which-key-add-keymap-based-replacements myemacs-leader-map "l" "lsp")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "l=" "formatting")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lF" "folders")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lG" "peek")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lT" "toggle")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "la" "code actions")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lg" "goto")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lh" "help")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lr" "refactor")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lu" "ui")
+  (which-key-add-keymap-based-replacements myemacs-leader-map "lw" "workspaces")
+  (define-key myemacs-leader-map (kbd "lug") '("ui doc glance" . lsp-ui-doc-glance)))
+(add-hook 'lsp-mode-hook 'lsp-bind)
 
 (use-package company
   :after lsp-mode
@@ -279,7 +322,8 @@
 (use-package company-box
   :hook (company-mode . company-box-mode))
 
-(use-package evil-nerd-commenter)
+(use-package evil-nerd-commenter
+  :after evil)
 
 (use-package tree-sitter
   :config
@@ -287,10 +331,13 @@
 (use-package tree-sitter-langs)
 
 (use-package highlight-quoted
-  :ensure t
   :config
   (require 'highlight-quoted)
   (add-hook 'emacs-lisp-mode 'highlight-quoted-mode))
+
+(use-package hl-todo
+  :hook
+  (prog-mode . hl-todo-mode))
 
 (use-package eros
   :config
@@ -299,19 +346,46 @@
 (use-package harpoon
   :straight '(:package "harpoon.el" :host github :type git :repo "NAHTAIV3L/harpoon.el"))
 
-(use-package hl-todo
-  :hook
-  (prog-mode . hl-todo-mode))
-
 (use-package vterm
   :commands vterm
   :config
   (setq vterm-max-scrollback 10000)
   (setq vterm-kill-buffer-on-exit t))
 
+(defun configure-eshell ()
+  ;; Save command history when commands are entered
+  (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
+
+  ;; Truncate buffer for performance
+  (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
+
+  ;; Bind some useful keys for evil-mode
+  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
+  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
+  (evil-normalize-keymaps)
+
+  (setq eshell-history-size         10000
+	eshell-buffer-maximum-lines 10000
+	eshell-hist-ignoredups t
+	eshell-scroll-to-bottom-on-input t))
+
+(use-package eshell-git-prompt)
+
+(use-package all-the-icons)
+
+(use-package eshell
+  :hook (eshell-first-time-mode . configure-eshell)
+  :config
+
+  (with-eval-after-load 'esh-opt
+    (setq eshell-destroy-buffer-when-process-dies t)
+    (setq eshell-visual-commands '("htop" "zsh" "vim")))
+
+  (eshell-git-prompt-use-theme 'robbyrussell))
+
 (global-set-key (kbd "<escape>") 'keyboard-quit)
 
-(defvar myemacs-escape-hook nil 
+(defvar myemacs-escape-hook nil
   "for killing things")
 
 (defun myemacs/escape (&optional interactive)
@@ -429,3 +503,7 @@
 (define-key myemacs-leader-map (kbd "jc") '("harpoon clear" . harpoon-clear))
 (define-key myemacs-leader-map (kbd "jf") '("harpoon toggle file" . harpoon-toggle-file))
 (define-key general-override-mode-map (kbd "C-SPC") '("harpoon toggle quick menu" . harpoon-toggle-quick-menu))
+
+(if (or (string= (getenv "WINDOWMANAGER") "d") (string= (getenv "WINDOWMANAGER") ""))
+    nil
+    (load "~/.config/emacs/desktop.el"))
