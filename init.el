@@ -1,3 +1,6 @@
+(setq user-full-name "Riley Beckett")
+(setq user-mail-address "rbeckettvt@gmail.com")
+(setq-default indent-tabs-mode nil)
 (setq inhibit-startup-message t)
 (setq backup-inhibited t)
 
@@ -124,7 +127,9 @@
 	      ("C-n" . vertico-next)
 	      ("C-p" . vertico-previous))
   :init
-  (vertico-mode 1))
+  (vertico-mode 1)
+  (setq vertico-count 15))
+
 (use-package savehist
   :init
   (savehist-mode 1))
@@ -250,6 +255,37 @@
 (require 'status)
 
 (use-package general)
+
+(use-package mu4e
+  :ensure nil
+  :straight nil
+  ;; :load-path "/usr/share/emacs/site-lisp/mu4e/"
+  ;; :defer 20 ; Wait until 20 seconds after startup
+  :config
+
+  ;; This is set to 't' to avoid mail syncing issues when using mbsync
+  (setq mu4e-change-filenames-when-moving t)
+
+  ;; Refresh mail using isync every 10 minutes
+  (setq mu4e-update-interval (* 10 60))
+  (setq mu4e-get-mail-command "mbsync -a")
+  (setq mu4e-maildir "~/Maildir")
+
+  (setq mu4e-drafts-folder "/acc1-gmail/[acc1].Drafts")
+  (setq mu4e-sent-folder   "/acc1-gmail/[acc1].Sent Mail")
+  (setq mu4e-refile-folder "/acc1-gmail/[acc1].All Mail")
+  (setq mu4e-trash-folder  "/acc1-gmail/[acc1].Trash")
+  (setq smtpmail-smtp-server "smtp.gmail.com")
+  (setq smtpmail-smtp-service 465)
+  (setq smtpmail-stream-type  'ssl)
+  (setq message-send-mail-function 'smtpmail-send-it)
+  (setq mu4e-compose-signature "Riley Beckett\nrbeckettvt@gmail.com")
+  (setq mu4e-compose-format-flowed t))
+
+(use-package mu4e-alert
+  :config
+  (mu4e-alert-set-default-style 'libnotify)
+  (add-hook 'after-init-hook #'mu4e-alert-enable-notifications))
 
 (use-package exwm)
 
@@ -446,6 +482,12 @@
 (define-key myemacs-leader-map (kbd "w") '("window" . evil-window-map))
 (define-key myemacs-leader-map (kbd "p") '("project" . projectile-command-map))
 (unbind-key (kbd "ESC") projectile-command-map)
+
+(defun browse-config ()
+  (interactive)
+  (let ((default-directory (file-truename (expand-file-name "~/.config/emacs/"))))
+    (call-interactively #'find-file)))
+(define-key myemacs-leader-map (kbd "`") '("open file in config dir" . browse-config))
 
 (which-key-add-keymap-based-replacements myemacs-leader-map "TAB" "workspace")
 (define-key myemacs-leader-map (kbd "TAB TAB") '("list workspaces" . +workspace/display))
